@@ -1,26 +1,26 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import React from "react";
 
-import './globals.css'
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
-  title: 'CityTeam Checkins',
-  description: 'Guest Checkins application',
-}
+  title: "CityTeam Checkins",
+  description: "Guest Checkins application",
+};
 
 export default function RootLayout({
-                                     children,
-                                   }: {
-  children: React.ReactNode
+  children,
+}: {
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-    <body className={inter.className}>
-    <button className="btn btn-primary">Hello daisyUI!</button>
-    {children}
-    </body>
+      <body className={inter.className}>
+        <button className="btn btn-primary">Hello daisyUI!</button>
+        {children}
+      </body>
     </html>
-  )
+  );
 }
