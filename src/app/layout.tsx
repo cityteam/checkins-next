@@ -18,7 +18,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <button className="btn btn-primary">Hello daisyUI!</button>
         {children}
       </body>
     </html>
