@@ -1,5 +1,6 @@
 {
   "name": "checkins-next",
+  "description": "CityTeam Guest Checkins (next generation technology)",
   "version": "0.1.0",
   "private": true,
   "scripts": {
