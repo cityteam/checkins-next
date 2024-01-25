@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,4 +5,211 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+/// OAuth access token assigned to a signed in User
+model AccessToken {
+  /// Primary key of this AccessToken
+  id      Int      @id @default(autoincrement())
+  /// Timestamp when this AccessToken will no longer be active
+  expires DateTime @db.Timestamptz(6)
+  /// Authorization scopes (space delimited) for this AccessToken
+  scope   String
+  /// Access token unique value
+  token   String   @unique
+  /// ID of the User this AccessToken belongs to
+  userId  Int      @map("user_id")
+  /// User this AccessToken belongs to
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("access_tokens")
+}
+
+/// A ban on a particular Guest being registered in a Facility for a given date range
+model Ban {
+  /// Primary key of this Ban
+  id         Int      @id @default(autoincrement())
+  /// Is this Ban currently active?
+  active     Boolean  @default(true)
+  /// Optional comments about the reason for this Ban
+  comments   String?
+  /// ID of the Facility for which this Ban is imposed
+  facilityId Int      @map("facilityId")
+  /// Starting date of this Ban
+  fromDate   DateTime @map("from_date") @db.Date
+  /// ID of the Guest this Ban applies to
+  guestId    Int      @map("guestId")
+  /// Name of the staff person that initiated this Ban
+  staff      String?
+  /// Ending date of this Ban
+  toDate     DateTime @map("to_date") @db.Date
+  /// The Facility this Ban is associated with
+  facility   Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  /// The Guest this Ban is associated with
+  guest      Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@map("bans")
+}
+
+/// Record of an overnight checkin of a particular Guest, on a particular Date, in a particular Facility
+model Checkin {
+  /// Primary key of this Checkin
+  id            Int       @id @default(autoincrement())
+  /// Date for which this Checkin occurred
+  checkinDate   DateTime  @map("checkin_date") @db.Date
+  /// Optional comments about this Checkin
+  comments      String?
+  /// ID of the Facility in which this Checkin occurred
+  facilityId    Int       @map("facility_id")
+  /// Feature codes available at the assigned mat
+  features      String?
+  /// ID of the Guest who was checked in
+  guestId       Int?      @map("guest_id")
+  /// Mat number assigned to this Guest
+  matNumber     Int       @map("mat_number")
+  /// Amount paid for this Checkin
+  paymentAmount Decimal?  @map("payment_amount") @db.Decimal(5, 2)
+  /// Code for the type of payment used for this Checkin
+  paymentType   String?   @map("payment_type")
+  /// Time this Guest wishes to be awakened for a shower
+  showerTime    DateTime? @map("shower_time") @db.Time(6)
+  /// Time this Guest wishes to be awakened
+  wakeupTime    DateTime? @map("wakeup_time") @db.Time(6)
+  /// Facility in which this Checkin occurred
+  facility      Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  /// Guest who was checked in
+  guest         Guest?    @relation(fields: [guestId], references: [id])
+
+  @@unique([facilityId, checkinDate, matNumber])
+  @@map("checkins")
+}
+
+/// A CityTeam facility capable of hosting overnight Guests
+model Facility {
+  /// Primary key of this Facility
+  id        Int        @id @default(autoincrement())
+  /// Is this Facility currently active?
+  active    Boolean    @default(true)
+  /// First line of the postal address for this Facility
+  address1  String?
+  /// Second line of the postal address for this Facility
+  address2  String?
+  /// City of the postal address for this Facility
+  city      String?
+  /// Email address of this Facility
+  email     String?
+  /// Name of this Facility
+  name      String     @unique
+  /// Phone number of this Facility
+  phone     String?
+  /// Authorization scope prefix for this Facility
+  scope     String     @unique
+  /// State of the postal address for this Facility
+  state     String?
+  /// Zip code of the postal address for this Facility
+  zipcode   String?
+  /// Bans that have been recorded for this Facility
+  bans      Ban[]
+  /// Checkins that have been recorded for this Facility
+  checkins  Checkin[]
+  /// Guests that have ever been registered for this Facility
+  guests    Guest[]
+  /// Mat layout templates for this Facility
+  templates Template[]
+
+  @@map("facilities")
+}
+
+/// An individual who has ever been a Guest at a particular Facility
+model Guest {
+  /// Primary key of this Guest
+  id         Int       @id @default(autoincrement())
+  /// Is this Guest currently active?
+  active     Boolean   @default(true)
+  /// Optional comments about this Guest
+  comments   String?
+  /// ID of the Facility this Guest is associated with
+  facilityId Int       @map("facility_id")
+  /// Optional favorite mat number for this Guest
+  favorite   String?
+  /// First name of this Guest
+  firstName  String    @map("first_name")
+  /// Last name of this Guest
+  lastName   String    @map("last_name")
+  /// Any Bans that have ever been recorded for this Guest
+  bans       Ban[]
+  /// Any Checkins that have ever been recorded for this Guest
+  checkins   Checkin[]
+  /// Facility this Guest is associated with
+  facility   Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@unique([facilityId, lastName, firstName])
+  @@map("guests")
+}
+
+/// OAuth refresh token granted for a User
+model RefreshToken {
+  /// Primary key of this RefreshToken
+  id          Int      @id @default(autoincrement())
+  /// AccessToken string this RefreshToken is associated with
+  accessToken String   @map("access_token")
+  /// Date and time this RefreshToken will no longer be valid
+  expires     DateTime @db.Timestamptz(6)
+  /// Token value for this RefreshToken
+  token       String   @unique
+  /// ID of the User who has been assigned this RefreshToken
+  userId      Int      @map("user_id")
+  /// User who has been assigned this RefreshToken
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+/// Template describing a layout of mats for a particular Facility
+model Template {
+  /// Primary key of this Template
+  id           Int      @id @default(autoincrement())
+  /// Is this Template currently active?
+  active       Boolean  @default(true)
+  /// List of mat number ranges for all mats to be generated
+  allMats      String   @map("all_mats")
+  /// Optional comments about this Template
+  comments     String?
+  /// ID of the Facility this Template is associated with
+  facilityId   Int      @map("facility_id")
+  /// List of mat number ranges that are handicap accessible
+  handicapMats String?  @map("handicap_mats")
+  /// Name of this Template
+  name         String
+  /// List of mat number ranges that have an electrical socket nearby
+  socketMats   String?  @map("socket_mats")
+  /// List of mat number ranges that are considered reserved "work mats"
+  workMats     String?  @map("work_mats")
+  /// Facility this Template is associated with
+  facility     Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@unique([facilityId, name])
+  @@map("templates")
+}
+
+/// An authorized user for this application
+model User {
+  /// Primary key of this User
+  id            Int            @id @default(autoincrement())
+  /// Is this User currently active?
+  active        Boolean        @default(true)
+  /// Name of this User
+  name          String
+  /// Hashed password of this User
+  password      String
+  /// Authorization scope(s) granted for this User
+  scope         String
+  /// Login username of this User
+  username      String         @unique
+  /// AccessTokens created for this User
+  accessTokens  AccessToken[]
+  /// RefreshTokens created for this User
+  refreshTokens RefreshToken[]
+
+  @@map("users")
 }
