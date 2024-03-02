@@ -7,8 +7,7 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-// Initially from "https://daisyui.com/docs/config"
-// daisyUI config (optional - here are the default values)
+  // Initially from "https://daisyui.com/docs/config"
   daisyui: {
     base: true, // applies background color and foreground color for root element by default
     darkTheme: "dark", // name of one of the included themes for dark mode

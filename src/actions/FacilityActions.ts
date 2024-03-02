@@ -22,26 +22,83 @@ import {
   ServerError,
 } from "@/lib/HttpErrors";
 import { logger } from "@/lib/ServerLogger";
+import { FacilityPlus } from "@/types/types";
+
+// Public Types --------------------------------------------------------------
+
+export type FacilityMultipleOpts = {
+  // Fetch only Facilities with matching active state? [no default]
+  active?: boolean;
+  // Wildcard match on name
+  name?: string;
+  // Number of rows to skip at the beginning of the returned values [0]
+  skip?: number;
+  // Number of rows to return [no default]
+  take?: number;
+  // Include child Bans? [false]
+  withBans?: boolean;
+  // Include child Templates? [false]
+  withTemplates?: boolean;
+}
+
+// TODO: Use this in exact() and find()
+export type FacilitySingleOpts = {
+  // Include child Bans? [false]
+  withBans?: boolean;
+  // Include child Templates? [false]
+  withTemplates?: boolean;
+}
 
 // Public Actions ------------------------------------------------------------
 
 /**
- * Return all Facilities.  TODO: optional child includes? search conditions?
+ * Return all Facilities that match the specified options criteria.
+ *
+ * @param opts                          Optional filter/include criteria
  *
  * @throws ServerError                  If a low level error occurs
  */
-export const all = async (): Promise<Facility[]> => {
+export const all = async (opts: FacilityMultipleOpts = {}): Promise<FacilityPlus[]> => {
 
   logger.info({
     context: "FacilityActions.all",
+    opts,
   });
 
   try {
-    return await db.facility.findMany({
-      where: {
-        name: "asc",
-      },
-    })
+    const args: Prisma.FacilityFindManyArgs = {
+      orderBy: { name: "asc" },
+    };
+    if ((opts.active !== undefined) || opts.name) {
+      args.where = {};
+    }
+    if (opts.active !== undefined) {
+      args.where!.active = {
+        equals: opts.active,
+      }
+      if (opts.name) {
+        args.where!.name = {
+          contains: opts.name,
+          mode: "insensitive",
+        }
+      }
+    }
+    args.skip = opts.skip ? opts.skip : undefined;
+    args.take = opts.take ? opts.take : undefined;
+    if (opts.withBans || opts.withTemplates /* or any other withXXX */) {
+      args.include = {};
+    }
+    if (opts.withBans) {
+      args.include!.bans = {
+        orderBy: { fromDate: "asc" },
+      }
+    }
+    if (opts.withTemplates) {
+      args.include!.templates = {
+        orderBy: { name: "asc" },
+      }
+    }
+    return await db.facility.findMany(args) as FacilityPlus[];
   } catch (error) {
     throw new ServerError(error as Error, "FacilityActions.all");
   }
